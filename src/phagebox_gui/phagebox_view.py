@@ -246,7 +246,7 @@ class PhageBoxGUI(BaseFrame):
         self.y_int = y_int
         self.slope = slope
         self.phagebox_adapter : ArduinoController = phagebox_adapter
-        super().__init__(parent, background="blue")
+        super().__init__(parent, fg_color="blue")
         self.start_time = time.time()
         self.temperature_history = [[], [], []]
         self.set_temperature_history = [[], []] #front, back
@@ -349,7 +349,7 @@ class LogoFrame(BaseFrame):
         self.bg_image = ImageTk.PhotoImage(image)
         self.image_label = customtkinter.CTkLabel(master=self, image=self.bg_image)
         self.image_label.grid(row=0, column=0, columnspan=1, pady=2, padx=10, sticky="w")
-        self.URL_label = customtkinter.CTkLabel(master=self, text="LINK TO SOURE CODE", text_font=("Roboto Medium", 10), cursor="hand1")
+        self.URL_label = customtkinter.CTkLabel(master=self, text="LINK TO SOURE CODE", font=("Roboto Medium", 10), cursor="hand1")
         self.URL_label.grid(row=1, column=0, columnspan=1, pady=0, padx=0, sticky="w")
         self.URL_label.bind("<Button-1>", lambda a: self.callback("https://github.com/Dreycey/PhageBox"))
         
@@ -359,7 +359,7 @@ class LogoFrame(BaseFrame):
         # =======> GUI widget: text for description <=======
         self.label_radio_group = customtkinter.CTkLabel(master=self,
                                                         text="PhageBox: A DIY Digital Microfluidic Platform for Automated Phage Control",
-                                                        text_font=("Roboto Medium", 20))
+                                                        font=("Roboto Medium", 20))
         self.label_radio_group.grid(row=0, column=1, columnspan=1, pady=2, padx=10, sticky="ew")
         self.columnconfigure(1, weight=1, minsize=2) # allow for expanding/etc
 
@@ -439,7 +439,7 @@ class MiscFrame(BaseFrame):
         # =======> GUI widget: magnetic toggle <=======
         self.label_radio_group = customtkinter.CTkLabel(master=self,
                                                         text="Electromagnet Control",
-                                                        text_font=("Roboto Medium", 20))
+                                                        font=("Roboto Medium", 20))
         self.label_radio_group.grid(row=0, column=0, columnspan=1, pady=2, padx=10, sticky="ew")
         self.button = customtkinter.CTkButton(master=self, 
                                               text="Turn ON", 
@@ -454,7 +454,7 @@ class MiscFrame(BaseFrame):
         # =======> GUI widget: backlight toggle <=======
         self.label_radio_group2 = customtkinter.CTkLabel(master=self,
                                                         text="Backlight Control",
-                                                        text_font=("Roboto Medium", 20))
+                                                        font=("Roboto Medium", 20))
         self.label_radio_group2.grid(row=2, column=0, columnspan=1, pady=2, padx=10, sticky="ew")
         self.button2 = customtkinter.CTkButton(master=self, 
                                               text="Turn ON", 
@@ -600,7 +600,7 @@ class PCRFrame(BaseFrame):
                 time_remaining_arr_m[pelt_index] = "OFF"
         # update text.
 
-        self.label_time_remaining.set_text(f"Time Remaining - Front: {time_remaining_arr[0]} s ({time_remaining_arr_m[0]} m), Back: {time_remaining_arr[1]} s ({time_remaining_arr_m[1]} m)")
+        self.label_time_remaining.configure(text=f"Time Remaining - Front: {time_remaining_arr[0]} s ({time_remaining_arr_m[0]} m), Back: {time_remaining_arr[1]} s ({time_remaining_arr_m[1]} m)")
 
     def save_data(self):
         """
@@ -697,7 +697,7 @@ class PCRFrame(BaseFrame):
         # # =======> GUI widget: label for choosing peliter <=======
         # self.label_radio_group = customtkinter.CTkLabel(master=self,
         #                                                 text="Choose a PCR location:",
-        #                                                 text_font=("Roboto Medium", 20))
+        #                                                 font=("Roboto Medium", 20))
         # self.label_radio_group.grid(row=0, column=0, columnspan=1, pady=1, padx=10, sticky="s")
 
         # =======> GUI widget: radio button for front peliter <=======
@@ -724,7 +724,7 @@ class PCRFrame(BaseFrame):
         # =======> GUI widget: Start/Stop PCR <=======
         self.label_radio_group2 = customtkinter.CTkLabel(master=self,
                                                         text="PCR Control",
-                                                        text_font=("Roboto Medium", 20))
+                                                        font=("Roboto Medium", 20))
         self.label_radio_group2.grid(row=0, column=1, columnspan=1, pady=2, padx=10, sticky="ewn")
         self.button2 = customtkinter.CTkButton(master=self, 
                                               text="START PCR", 
@@ -743,7 +743,7 @@ class PCRFrame(BaseFrame):
 
         # =======> GUI widget: Set Number of cycles <=======
         self.label_radio_group = customtkinter.CTkLabel(master=self,
-                                                        text_font=("Roboto Medium", 20),
+                                                        font=("Roboto Medium", 20),
                                                         text="Set the cycle count")
         self.label_radio_group.grid(row=2, column=0, columnspan=2, pady=10, padx=10, sticky="ew")
         self.cycle_count = customtkinter.CTkEntry(master=self,
@@ -755,7 +755,7 @@ class PCRFrame(BaseFrame):
         # =======> GUI widget: button for chooing output file <=======
         # self.label_radio_group2 = customtkinter.CTkLabel(master=self,
         #                                                 text="Choose file to store data",
-        #                                                 text_font=("Roboto Medium", 20))
+        #                                                 font=("Roboto Medium", 20))
         # self.label_radio_group2.grid(row=3, column=0, columnspan=2, pady=1, padx=1, sticky="ew")
         self.button2 = customtkinter.CTkButton(master=self, 
                                               text="Open file to store data", 
@@ -769,7 +769,7 @@ class PCRFrame(BaseFrame):
         self.label_radio_group = customtkinter.CTkLabel(master=self,
                                                         width=200,
                                                         height=20,
-                                                        text_font=("Roboto Medium", 20),
+                                                        font=("Roboto Medium", 20),
                                                         text="Set PCR parameters")
         self.label_radio_group.grid(row=0, column=2, rowspan=1, columnspan=3, pady=1, padx=1, sticky="ns")
 
@@ -777,7 +777,7 @@ class PCRFrame(BaseFrame):
         self.label_time_remaining = customtkinter.CTkLabel(master=self,
                                                         width=200,
                                                         height=20,
-                                                        text_font=("Roboto Medium", 15),
+                                                        font=("Roboto Medium", 15),
                                                         text="Time Remaining: X")
         self.label_time_remaining.grid(row=1, column=2, rowspan=1, columnspan=3, pady=0, padx=0, sticky="ns")
 
@@ -835,7 +835,7 @@ class PCRStateFrame(BaseFrame):
         self.label_radio_group = customtkinter.CTkLabel(master=self,
                                                         width=200,
                                                         height=50,
-                                                        text_font=("Roboto Medium", 20),
+                                                        font=("Roboto Medium", 20),
                                                         text=self.state_name)
         self.label_radio_group.grid(row=0, column=0, columnspan=1, pady=1, padx=10, sticky="s")
 
