@@ -68,6 +68,9 @@ class ArduinoController:
         self.t1.start()
         self.current_temperatures = [-1, -1, -1]
         self.set_temperatures = [-1, -1]
+
+        # for sending individual temperature steps
+        self.current_temp_step_executed = False
         
     def __del__(self):
         """
@@ -118,6 +121,45 @@ class ArduinoController:
         else:
             self.magnetOn = True
 
+
+    def start_thermocycler(self, peltier, temperature_states):
+        """
+        Description:
+            This function sets up and initiates the provided thermocycler protocol
+        Attributes:
+            peltier            -> indicates which temperature module to use
+            temperature_states -> list of tuples indicating the thermocycler protocol [(temp1, time1), (temp2, time3)...]
+        """
+        print("STARTING THERMOCYCLER")
+        print(f"Temperature states:\n{temperature_states}")
+        peltier = int(peltier)
+
+        # # Convert generator expressions to lists
+        # temperatures = [str(round(temperature_states[i][0])) for i in range(len(temperature_states))]
+        # times = [str(round(temperature_states[i][1])) for i in range(len(temperature_states))]
+
+        # times_temps=""
+        # if len(temperatures) == len(times):
+        #     for i in range(len(temperatures)):
+        #         times_temps += (times[i] + "," + temperatures[i] + ",")
+
+        # # Remove trailing comma from `times_temps`
+        # times_temps = times_temps.rstrip(',')
+
+        # protocol = f"<T,{peltier}," + times_temps + ">"
+        # print(f"Sending Thermocycler protocol:\n{protocol}")
+        # self.send_serial_msg(protocol)
+
+        # Send temperature steps to phagebox one at a time
+        for temp_step in temperature_states:
+            self.current_temp_step_executed = False
+            while not self.current_temp_step_executed: 
+                message = f"<T,{peltier},{str(round(temp_step[1]))},{str(round(temp_step[0]))}>"
+                print(f"Sending temperature step from PC:\n{message}\n")
+                self.send_serial_msg(message)
+
+
+
     def start_pcr(self, peltier, cycles, d_temp, d_time, a_temp, a_time, e_temp, e_time):
         """
         Description:
@@ -150,7 +192,14 @@ class ArduinoController:
         """
         while not self.stopped():
             if self.ser.in_waiting:
+
                 serial_in_string = str(self.ser.readline()).strip("b").strip("'").strip("\\n").strip("\r")
+
+                # Check if temperature step executed
+                if "EXECUTED" in serial_in_string:
+                    self.current_temp_step_executed = True
+
+
                 pelt_identifier = serial_in_string.split(",")[0]
                 if pelt_identifier == "T_METAL":
                     temperature = serial_in_string.split(",")[-1]

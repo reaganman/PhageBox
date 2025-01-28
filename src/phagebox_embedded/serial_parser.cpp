@@ -29,6 +29,7 @@ void getDataFromPC(TemperatureModule *temp_modules[])
       readInProgress = false;
       newDataFromPC = true;
       inputBuffer[bytesRecvd] = 0; // dreycey: append EOS character
+
       parseData(temp_modules);
     }
 
@@ -120,6 +121,41 @@ void parseData(TemperatureModule *temp_modules[])
       temp_modules[1]->start_pcr();
     }
   }
+
+  else if (messageFromPC[0] == 'T')
+  {
+    // parse thermocycler step
+    Serial.print("\nParsing thermocycler step\n");
+
+    // get heater #
+    strtokIndx = strtok(NULL, delim);   // parse on delimm
+    int heater_numb = atoi(strtokIndx); // str2int
+
+    // Get step time
+    strtokIndx = strtok(NULL, delim);   // parse on delimm
+    int step_time = atoi(strtokIndx); // str2int
+
+    // Get step temp
+    strtokIndx = strtok(NULL, delim);   // parse on delimm
+    int step_temp = atoi(strtokIndx); // str2int
+
+    // send values back for validation
+    Serial.print(startMarker);
+    Serial.print(heater_numb);
+    Serial.print(step_time);
+    Serial.print(step_temp);
+    Serial.print(endMarker);
+
+    // Execute temp step
+    Serial.print("\nExecuting\n");
+
+
+    Serial.print("EXECUTED");
+
+
+  }
+
+
   else if (messageFromPC[0] == 'B')
   {
     // parse mag value

@@ -28,6 +28,31 @@ void TemperatureModule::update_states()
         Serial.print("TIME PASSED = ");
         Serial.print(*internal_timer);
         Serial.println(" seconds \n");
+
+        //Preheat before starting timer
+        float curr_temp = getTemp();
+        float desired_temp = get_desiredTemp();
+
+        if (curr_temp > desired_temp)
+        {
+            while (curr_temp > desired_temp)
+            {
+                Serial.println("Precooling");
+                heater_off();
+                curr_temp = getTemp();
+            }
+        }
+
+        else if (curr_temp < desired_temp)
+        {
+            while (curr_temp < desired_temp)
+            {
+                Serial.println("Preheating");
+                heater_on();
+                curr_temp = getTemp();
+            }
+        }
+
         if (current_state == ELONGATE)
         {
             number_cycles_used++;

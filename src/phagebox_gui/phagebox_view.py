@@ -304,6 +304,13 @@ class PhageBoxGUI(BaseFrame):
         self.pcr_frame = PCRFrame(self, None)
         self.pcr_frame.grid(row=2, column=0, pady=2, padx=2, rowspan=1, columnspan=2, sticky=tk.N + tk.S + tk.E + tk.W)
 
+        # # Thermocycler frame (layer 1)
+        # print(f"Making thermocycler frame!")
+        # self.tc_frame = ThermocyclerFrame(self, None)
+        # self.tc_frame.grid(row=2, column=0, pady=2, padx=2, rowspan=1, columnspan=2, sticky=tk.N + tk.S + tk.E + tk.W)
+
+
+
         # # set the controller
         # self.controller = None
 
@@ -510,7 +517,8 @@ class DisplayFrame(BaseFrame_original):
         def animate(i):
             """ this sub function updates the GUI. axis is cm^3 """
             while (len(self.ax.lines) >= 1): 
-                self.ax.lines.pop(0)
+                if self.ax.lines:
+                    self.ax.lines[0].remove()
             # update values
             self.parent.update_temperatures()
             # get temperatures
@@ -554,6 +562,185 @@ class DisplayFrame(BaseFrame_original):
         """
         self.init_window()
         None
+
+class ThermocyclerFrame(BaseFrame):
+    """
+    Description:
+        This class contains the frame for performing PCR with optional cycling and custom state configurations.
+    """
+
+    def __init__(self, parent, phagebox_adapter=None, y_int=None, slope=None):
+        self.parent = parent
+        self.y_int = y_int
+        self.slope = slope
+        self.phagebox_adapter = phagebox_adapter
+        self.width, self.height = (400, 700)
+        self.num_temperature_states = 3  # Default number of states
+        self.temperature_states = []  # List to store dynamically created states
+        self.tc_start_time = [0, 0]
+        self.time_for_tc = [0, 0]
+        self.cycling_enabled = tk.BooleanVar(value=False)  # Cycling toggle
+        super().__init__(parent, height=self.height, width=self.width)
+        self.create_view()
+
+    def update_time_remaining(self):
+        """
+        Description:
+            This method updates the time remaining during a PCR.  
+        """
+        # calculate time remaining.
+        time_remaining_arr = [0,0]
+        time_remaining_arr_m = [0,0]
+        for pelt_index in [0,1]: # front and back pelt
+            if (self.tc_start_time[pelt_index] != 0):
+                time_lapsed =  float(self.parent.time_history[-1]) - float(self.tc_start_time[pelt_index])
+                time_remaining = self.time_for_tc[pelt_index] - time_lapsed
+                time_remaining_arr[pelt_index] = int(time_remaining) # round
+                time_remaining_arr_m[pelt_index] = int(time_remaining/60) # round
+            else:
+                time_remaining_arr[pelt_index] = "OFF"
+                time_remaining_arr_m[pelt_index] = "OFF"
+        # update text.
+
+        self.label_time_remaining.set_text(f"Time Remaining - Front: {time_remaining_arr[0]} s ({time_remaining_arr_m[0]} m), Back: {time_remaining_arr[1]} s ({time_remaining_arr_m[1]} m)")
+
+    
+    def update_temperature_states(self, num_states):
+        """
+        Description:
+            Dynamically update the number of temperature states.
+        """
+        self.num_temperature_states = num_states
+        for widget in self.temperature_states:
+            widget.destroy()
+        self.temperature_states.clear()
+
+        for i in range(num_states):
+            label_temp = customtkinter.CTkLabel(self, text=f"State {i+1} Temperature (°C):")
+            label_temp.grid(row=6 + i * 3, column=0, padx=5, pady=5)
+            entry_temp = customtkinter.CTkEntry(self)
+            entry_temp.grid(row=6 + i * 3, column=1, padx=5, pady=5)
+
+            label_time = customtkinter.CTkLabel(self, text=f"State {i+1} Time (s):")
+            label_time.grid(row=7 + i * 3, column=0, padx=5, pady=5)
+            entry_time = customtkinter.CTkEntry(self)
+            entry_time.grid(row=7 + i * 3, column=1, padx=5, pady=5)
+
+            label_cycle = customtkinter.CTkLabel(self, text=f"Include in Cycle:")
+            label_cycle.grid(row=8 + i * 3, column=0, padx=5, pady=5)
+            cycle_var = tk.BooleanVar(value=False)
+            check_cycle = customtkinter.CTkCheckBox(self, variable=cycle_var)
+            check_cycle.grid(row=8 + i * 3, column=1, padx=5, pady=5)
+
+            self.temperature_states.append((entry_temp, entry_time, cycle_var))
+
+    def toggle_tc(self):
+        """
+        Start the thermocycler.
+        """
+        peltier = self.radio_var.get()
+        num_cycles = int(self.cycle_count.get()) if self.cycling_enabled.get() else 1
+        states = []
+        cycle_states = []
+
+        for i, (temp_entry, time_entry, cycle_var) in enumerate(self.temperature_states):
+            temp = float(temp_entry.get())
+            time = float(time_entry.get())
+            states.append((self.chip2pelt_temp(temp), time))
+            if cycle_var.get():
+                cycle_states.append(i)
+
+        # Generate the full sequence of states
+        sequence = states[:]
+        if self.cycling_enabled.get() and cycle_states:
+            cycle_sequence = [states[i] for i in cycle_states]
+            sequence += cycle_sequence * num_cycles
+
+        # Example: Sending state configurations to the controller
+        self.phagebox_adapter.start_pcr(
+            peltier=peltier,
+            temperature_states=sequence
+        )
+
+        # Calculate total PCR time
+        total_time_for_pcr = sum(state[1] for state in sequence)
+        if peltier == 3:
+            self.pcr_start_time[0] = self.parent.time_history[-1]
+            self.pcr_start_time[1] = self.parent.time_history[-1]
+            self.time_for_pcr[0] = total_time_for_pcr
+            self.time_for_pcr[1] = total_time_for_pcr
+        else:
+            self.pcr_start_time[peltier - 1] = self.parent.time_history[-1]
+            self.time_for_pcr[peltier - 1] = total_time_for_pcr
+
+    def stop_tc(self):
+        """
+        Description:
+            This method stops thermocycling for a chosen peliter.
+        """
+        peltier = self.radio_var.get()
+        self.phagebox_adapter.start_pcr(peltier=self.radio_var.get(), 
+                                        cycles=0,
+                                        d_temp=0, 
+                                        d_time=0, 
+                                        a_temp=0,
+                                        a_time=0, 
+                                        e_temp=0, 
+                                        e_time=0
+                                        )
+        # stop tc timing
+        if peltier == 3: # if both.
+            self.tc_start_time[0] = 0
+            self.tc_start_time[1] = 0
+            self.time_for_tc[0] = 0
+            self.time_for_tc[1] = 0
+        else:
+            self.tc_start_time[peltier-1] = 0
+            self.time_for_tc[peltier-1] = 0
+
+    def create_view(self):
+        """
+        Create the GUI layout, including dynamic temperature states and cycling options.
+        """
+        self.radio_var = tk.IntVar(value=1)
+
+        # GUI for PCR location selection
+        self.radio_button_1 = customtkinter.CTkRadioButton(self, text="Front Peltier", variable=self.radio_var, value=1)
+        self.radio_button_1.grid(row=0, column=0, pady=10, padx=3, sticky="n")
+
+        self.radio_button_2 = customtkinter.CTkRadioButton(self, text="Back Peltier", variable=self.radio_var, value=2)
+        self.radio_button_2.grid(row=1, column=0, pady=3, padx=3, sticky="n")
+
+        self.radio_button_3 = customtkinter.CTkRadioButton(self, text="Both Peltiers", variable=self.radio_var, value=3)
+        self.radio_button_3.grid(row=2, column=0, pady=3, padx=3, sticky="n")
+
+        # Start/Stop PCR buttons
+        self.start_button = customtkinter.CTkButton(self, text="START THERMOCYCLER", command=self.toggle_tc)
+        self.start_button.grid(row=3, column=0, pady=10, padx=10, sticky="ew")
+
+        self.stop_button = customtkinter.CTkButton(self, text="STOP THERMOCYCLER", command=self.stop_pcr)
+        self.stop_button.grid(row=3, column=1, pady=10, padx=10, sticky="ew")
+
+        # Set number of cycles
+        self.cycle_label = customtkinter.CTkLabel(self, text="Set Cycle Count:")
+        self.cycle_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        self.cycle_count = customtkinter.CTkEntry(self, placeholder_text="32")
+        self.cycle_count.grid(row=4, column=1, padx=5, pady=5, sticky="e")
+
+        # Enable/Disable Cycling
+        self.cycle_toggle = customtkinter.CTkCheckBox(self, text="Enable Cycling", variable=self.cycling_enabled)
+        self.cycle_toggle.grid(row=5, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+        # Dynamic temperature states
+        self.update_temperature_states(self.num_temperature_states)
+
+        # Adjust number of temperature states
+        self.state_count_label = customtkinter.CTkLabel(self, text="Number of States:")
+        self.state_count_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        self.state_count = customtkinter.CTkEntry(self, placeholder_text="3")
+        self.state_count.grid(row=0, column=3, padx=5, pady=5, sticky="e")
+        self.state_count_button = customtkinter.CTkButton(self, text="Update States", command=lambda: self.update_temperature_states(int(self.state_count.get())))
+        self.state_count_button.grid(row=1, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
 
 
 class PCRFrame(BaseFrame):
