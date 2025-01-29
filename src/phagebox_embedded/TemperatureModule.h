@@ -11,7 +11,10 @@
 #include "DallasTemperature.h"
 #include "GPIO_Control.h"
 #include "timer.h"
+
 #define NUM_STATES (4) // must be updated when adding states.
+#define TEMP_TOLERANCE 0.5  // Temperature accuracy in degrees
+#define MAX_PREHEAT_TIME_MS 5000  // Max time for preheating in milliseconds
 
 // Check Arduino
 #if (ARDUINO >= 100)
@@ -73,6 +76,10 @@ public:
 
 	// update the state table with new values.
 	void update_state_table(pcr_state state, int time, int temp);
+
+
+	// preheat the temperature module for the next state
+	bool preheat();
 
 	// go to next state
 	void go2nextstate() { current_state = state_table[current_state].next_state; };

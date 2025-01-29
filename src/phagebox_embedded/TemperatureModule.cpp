@@ -1,6 +1,7 @@
 #include "TemperatureModule.h"
 #include "GPIO_Control.h"
 
+
 // Defined in header
 TemperatureModule::TemperatureModule(uint8_t relay_pin, uint8_t tempsense_pin, volatile int *timer)
 {
@@ -20,59 +21,130 @@ TemperatureModule::TemperatureModule(uint8_t relay_pin, uint8_t tempsense_pin, v
 }
 
 // Defined in header
+// void TemperatureModule::update_states() 
+// {
+//     if (*internal_timer >= get_currentTimeLen()) {
+
+//         go2nextstate();
+//         float curr_temp = getTemp();
+//         float desired_temp = get_desiredTemp();
+
+//         // Preheat or precool if necessary
+//         // if (curr_temp > desired_temp) 
+//         // {
+//         //     Serial.print("Current state: ");
+//         //     Serial.print(current_state);
+//         //     Serial.print("\n");
+//         //     Serial.println("Precooling\n");
+//         //     heater_off();
+//         // } 
+        
+//         // else if (curr_temp < desired_temp) 
+//         // {
+//         //     Serial.print("Current state: ");
+//         //     Serial.print(current_state);
+//         //     Serial.print("\n");
+//         //     Serial.print("Preheating\n");
+//         //     heater_on();
+//         // }
+
+//         if (abs(curr_temp - desired_temp) <= TEMP_TOLERANCE) {
+//             Serial.print("TIME PASSED = ");
+//             Serial.print(*internal_timer);
+//             Serial.println(" seconds \n");
+
+//             if (current_state == ELONGATE) {
+//                 number_cycles_used++;
+//                 Serial.println("Switching to ELONGATE \n");
+//             } else if (current_state == ANNEAL) {
+//                 Serial.println("Switching to ANNEAL \n");
+//             } else if (current_state == DENATURE) {
+//                 Serial.println("Switching to DENATURE \n");
+//             }
+//             reset_timer(internal_timer);
+//         }
+//     }
+
+//     if (number_cycles_used >= cycle_count) {
+//         stop_pcr();
+//     }
+// }
+
+
+bool TemperatureModule::preheat()
+{
+    float curr_temp = getTemp();
+    float next_temp = state_table[state_table[current_state].next_state].temp;
+    
+    while (abs(curr_temp - next_temp) > TEMP_TOLERANCE) // Exit when within tolerance
+    {
+        curr_temp = getTemp(); // Continuously update temperature
+
+        if (curr_temp > next_temp) 
+        {
+            Serial.print("Current temp: ");
+            Serial.print(curr_temp);
+            Serial.print("\nNext state temp: ");
+            Serial.print(next_temp);
+            Serial.print("\nPrecooling\n");
+            heater_off();
+        } 
+        else if (curr_temp < next_temp) 
+        {
+            Serial.print("Current temp: ");
+            Serial.print(curr_temp);
+            Serial.print("\nNext state temp: ");
+            Serial.print(next_temp);
+            Serial.print("\nPreheating\n");
+            heater_on();
+        }
+        delay(500); // Allow time for temperature to adjust
+    }
+
+    Serial.println("Preheating complete!");
+    return true; // Return true when preheated
+}
+
+
 void TemperatureModule::update_states()
 {
     if (*internal_timer >= get_currentTimeLen())
     {
-        go2nextstate();
-        Serial.print("TIME PASSED = ");
-        Serial.print(*internal_timer);
-        Serial.println(" seconds \n");
-
-        //Preheat before starting timer
-        float curr_temp = getTemp();
-        float desired_temp = get_desiredTemp();
-
-        if (curr_temp > desired_temp)
+        // Ensure preheating before transitioning
+        if (preheat()) 
         {
-            while (curr_temp > desired_temp)
+            go2nextstate();
+            Serial.print("TIME PASSED = ");
+            Serial.print(*internal_timer);
+            Serial.println(" seconds \n");
+
+            if (current_state == ELONGATE)
             {
-                Serial.println("Precooling");
-                heater_off();
-                curr_temp = getTemp();
+                number_cycles_used++;
+                Serial.println("Switching to ELONGATE \n");
             }
-        }
-
-        else if (curr_temp < desired_temp)
-        {
-            while (curr_temp < desired_temp)
+            else if (current_state == ANNEAL)
             {
-                Serial.println("Preheating");
-                heater_on();
-                curr_temp = getTemp();
+                Serial.println("Switching to ANNEAL \n");
             }
-        }
+            else if (current_state == DENATURE)
+            {
+                Serial.println("Switching to DENATURE \n");
+            }
 
-        if (current_state == ELONGATE)
-        {
-            number_cycles_used++;
-            Serial.println("Switching to ELONGATE \n");
+            reset_timer(internal_timer);
         }
-        else if (current_state == ANNEAL)
+        else
         {
-            Serial.println("Switching to ANNEAL \n");
+            Serial.println("Preheating not complete, staying in current state.");
         }
-        else if (current_state == DENATURE)
-        {
-            Serial.println("Switching to DENATURE \n");
-        }
-        reset_timer(internal_timer);
     }
     if (number_cycles_used >= cycle_count)
     {
         stop_pcr();
     }
 }
+
 
 // Defined in header
 float TemperatureModule::getTemp()
@@ -92,15 +164,15 @@ void TemperatureModule::toggle_relay()
 // Defined in header
 void TemperatureModule::heater_on()
 {
-    // Serial.print("Heater ON \n");
-    toggle_pin_on(relayPin); // from GPIO module
+    Serial.print("Heater ON \n");
+    toggle_pin_off(relayPin); // from GPIO module
 }
 
 // Defined in header
 void TemperatureModule::heater_off()
 {
-    // Serial.print("Heater OFF \n");
-    toggle_pin_off(relayPin); // from GPIO module
+    Serial.print("Heater OFF \n");
+    toggle_pin_on(relayPin); // from GPIO module
 }
 
 // Defined in header
