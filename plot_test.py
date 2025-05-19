@@ -9,21 +9,21 @@ from matplotlib.animation import FuncAnimation
 
 arduino_port = "/dev/cu.usbserial-110"  # port name
 baud_rate = 9600
-
+# # --- INITIALIZE ---
 try:
     ser = serial.Serial(arduino_port, baud_rate, timeout=1)
     print("Serial connection successful")
+    time.sleep(2)
 except Exception as e:
     print(f"Error: {e}")
+    exit(1)
 
 # --- TIME CONTROL ---
 start_time = time.time()
 run_duration_sec = 30 * 60  # 30 minutes in seconds
 
-# # --- INITIALIZE ---
-ser = serial.Serial(arduino_port, baud_rate, timeout=1)
-time.sleep(2)  # Wait for connection to settle
-print("Connected.")
+
+
 
 x_data = []
 t_data = []
@@ -49,7 +49,7 @@ ax.legend()
 ax.grid(True)
 
 # --- OPEN FILE EARLY ---
-file = open('../../Library/CloudStorage/OneDrive-UCB-O365/SUMMER 2025/arduino_data.txt', 'w')
+file = open('/Users/sepideh/Library/CloudStorage/OneDrive-UCB-O365/SUMMER 2025/arduino_data.txt', 'w')
 file.write("Timestamp,Temperature,Set Temperature\n")
 
 def update(frame):
@@ -66,18 +66,21 @@ def update(frame):
 
     if ser.in_waiting > 0:
         raw = ser.readline().decode('utf-8').strip()
+        print(f"Raw serial input: {raw}")  # Debug print
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-        if "Set Temp: " in raw and "Temperature: " in raw and "Relay: " in raw:
+
+        if "Set Temp: " in raw and "Temperature: " in raw and "Relay on? " in raw:
             parts = raw.split(',')
             set_temp_str = parts[0].split("Set Temp: ")[-1].strip()
             temp_str = parts[1].split("Temperature: ")[-1].strip()
             duty_str = parts[2].split("Duty: ")[-1].strip()
-            direction_str = parts[3].split("Relay on: ")[-1].strip()
+            direction_str = parts[3].split("Relay on? ")[-1].strip()
 
             set_temp = float(set_temp_str)
             temp = float(temp_str)
             duty = float(duty_str)
             #dire = int(direction_str)
+            dire = 1 if direction_str == "yes" else 0
 
             print(f"{timestamp} | Set: {set_temp} | Temp: {temp} | Duty: {duty} | Direction: {dire}")
 
@@ -88,9 +91,21 @@ def update(frame):
     dir_data.append(dire)
 
 
-    line.set_data(x_data, t_data)
-    line2.set_data(x_data, temp_data)
-    line3.set_data(x_data, dir_data)  # Assuming direction is constant for the plot
+    # line.set_data(x_data, t_data)
+    # line2.set_data(x_data, temp_data)
+    # line3.set_data(x_data, dir_data)  # Assuming direction is constant for the plot
+    #
+    line.set_xdata(x_data)
+    line.set_ydata(t_data)
+
+    line2.set_xdata(x_data)
+    line2.set_ydata(temp_data)
+
+    line3.set_xdata(x_data)
+    line3.set_ydata(dir_data)
+    ax.set_xlim(0, 500)
+    ax.set_ylim(20, 60)  # Set based on expected temperature range
+
     ax.relim()
     ax.autoscale_view() 
 
@@ -98,7 +113,7 @@ def update(frame):
     file.write(f"{timestamp},{temp},{set_temp}\n")
     file.flush()  # Important: makes sure data is actually written to disk
 
-    return line,line2,
+    return line,line2,line3
 
 try:
     #ani = FuncAnimation(fig, update, interval=500)
@@ -110,8 +125,7 @@ except KeyboardInterrupt:
 finally:
     ser.close()
     print("Serial connection closed.")
-    if live_plot:
-        plt.close(fig)
-        print("Plot closed.")
-    file.close()
+    # if live_plot:
+    plt.close(fig)
+    print("Plot closed.")
     print("Data saved to arduino_data.txt")
