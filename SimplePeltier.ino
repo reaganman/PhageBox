@@ -11,7 +11,7 @@ double hold_temp;
 double hold_time;
 double temperature;
 
-int relay_pin = 4;
+int relay_pin = 5;
 
 //PID constants
 //////////////////////////////////////////////////////////
