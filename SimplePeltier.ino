@@ -1,7 +1,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define ONE_WIRE_BUS  4
+#define ONE_WIRE_BUS  10
 
 OneWire oneWire(ONE_WIRE_BUS);
 
@@ -11,7 +11,7 @@ double hold_temp;
 double hold_time;
 double temperature;
 
-int relay_pin = 3;
+int relay_pin = 4;
 
 //PID constants
 //////////////////////////////////////////////////////////
