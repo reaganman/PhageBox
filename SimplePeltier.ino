@@ -37,7 +37,7 @@ void setup() {
   Serial.println("Starting up");
   //Using new Dallas Temp sensor
   sensors.begin();
-  set_temp:40;
+  hold_temp=40;
 }
 
 void loop() {
