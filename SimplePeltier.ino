@@ -15,7 +15,7 @@ int relay_pin = 5;
 
 //PID constants
 //////////////////////////////////////////////////////////
-float kp = 2.75;   float ki = 0.1;   float kd = 85;
+float kp = 0.5;   float ki = 0.02;   float kd = 5;
 //////////////////////////////////////////////////////////
 
 float PID_p = 0;    float PID_i = 0;    float PID_d = 0;
